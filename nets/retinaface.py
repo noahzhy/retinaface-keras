@@ -1,12 +1,15 @@
 from nets.mobilenet025 import MobileNet
 from nets.resnet import ResNet50
 from nets.layers import UpsampleLike
-from keras.layers import Conv2D, Add, ZeroPadding2D, UpSampling2D, Concatenate, MaxPooling2D, Reshape, Activation, Input
+from keras.layers import (
+    Conv2D, Add, ZeroPadding2D, UpSampling2D, Concatenate, MaxPooling2D, Activation, Input
+)
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from utils.utils import compose
 import keras.backend as K
+import tensorflow as tf
 #---------------------------------------------------#
 #   卷积块
 #   Conv2D + BatchNormalization + LeakyReLU
@@ -21,7 +24,8 @@ def Conv2D_BN_Leaky(*args, **kwargs):
     return compose( 
         Conv2D(*args, **kwargs),
         BatchNormalization(),
-        LeakyReLU(alpha=leaky))
+        LeakyReLU(alpha=leaky)
+    )
 
 #---------------------------------------------------#
 #   卷积块
@@ -47,18 +51,18 @@ def SSH(inputs, out_channel, leaky=0.1):
 
 def ClassHead(inputs, num_anchors=2):
     outputs = Conv2D(num_anchors*2, kernel_size=1, strides=1)(inputs)
-    return Activation("softmax")(Reshape([-1,2])(outputs))
+    return Activation("softmax")(tf.reshape(outputs, [-1,2]))
 
 def BboxHead(inputs, num_anchors=2):
     outputs = Conv2D(num_anchors*4, kernel_size=1, strides=1)(inputs)
-    return Reshape([-1,4])(outputs)
+    return tf.reshape(outputs, [-1,4])
 
 def LandmarkHead(inputs, num_anchors=2):
     outputs = Conv2D(num_anchors*5*2, kernel_size=1, strides=1)(inputs)
-    return Reshape([-1,10])(outputs)
+    return tf.reshape(outputs, [-1,10])
 
 def RetinaFace(cfg, backbone="mobilenet"):
-    inputs = Input(shape=(None, None, 3))
+    inputs = Input(shape=(320, 240, 3))
 
     if backbone == "mobilenet":
         C3, C4, C5 = MobileNet(inputs)
